@@ -1,5 +1,5 @@
 from django.conf import settings
-from oauth_tokens.models import AccessToken, AccessTokenGettingError
+from oauth_tokens.models import AccessToken, AccessTokenGettingError, AccessTokenRefreshingError
 from ssl import SSLError
 from odnoklassniki import api, OdnoklassnikiError
 import time
@@ -19,6 +19,16 @@ APPLICATION_SECRET = getattr(settings, 'OAUTH_TOKENS_ODNOKLASSNIKI_CLIENT_SECRET
 
 class NoActiveTokens(Exception):
     pass
+
+def refresh_tokens(count=1):
+    try:
+        return AccessToken.objects.refresh('odnoklassniki')
+    except AccessTokenRefreshingError, e:
+        if count <= 5:
+            time.sleep(1)
+            refresh_tokens(count+1)
+        else:
+            raise e
 
 def update_tokens(count=1):
     '''
@@ -71,6 +81,12 @@ def api_call(method, recursion_count=0, methods_access_tag=None, used_access_tok
 
     try:
         response = api._get(method, **kwargs)
+    except OdnoklassnikiError, e:
+        if e.code == 102:
+            refresh_tokens()
+            return api_call(method, recursion_count+1, methods_access_tag, **kwargs)
+        else:
+            raise e
     except SSLError, e:
         log.error("SSLError: '%s' registered while executing method %s with params %s, recursion count: %d" % (e, method, kwargs, recursion_count))
         time.sleep(1)

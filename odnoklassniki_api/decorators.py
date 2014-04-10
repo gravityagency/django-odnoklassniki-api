@@ -1,7 +1,21 @@
 # -*- coding: utf-8 -*-
 from django.utils.functional import wraps
 from django.db.models.query import QuerySet
+from datetime import datetime, timedelta
 import re
+
+try:
+    from django.db.transaction import atomic
+except ImportError:
+    from django.db.transaction import commit_on_success as atomic
+
+
+def list_chunks_iterator(l, n):
+    """ Yield successive n-sized chunks from l.
+    """
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]
+
 
 def opt_arguments(func):
     '''
@@ -19,6 +33,7 @@ def opt_arguments(func):
             return meta_func
     return meta_wrapper
 
+
 @opt_arguments
 def fetch_all(func, return_all=None, always_all=False):
     """
@@ -35,19 +50,16 @@ def fetch_all(func, return_all=None, always_all=False):
         def fetch_something(self, ..., *kwargs):
         ....
     """
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self, all=False, instances_all=None, *args, **kwargs):
 
         if len(args) > 0:
             raise ValueError("It's prohibited to use non-key arguments for method decorated with @fetch_all, method is %s.%s(), args=%s" % (self.__class__.__name__, func.__name__, args))
-
-        all = kwargs.pop('all', False) or always_all
-        instances_all = kwargs.pop('instances_all', None)
 
         instances = func(self, **kwargs)
         if len(instances) == 2 and isinstance(instances, tuple):
             instances, response = instances
 
-        if all:
+        if always_all or all:
             if isinstance(instances, QuerySet):
                 if not instances_all:
                     instances_all = QuerySet().none()
@@ -72,6 +84,79 @@ def fetch_all(func, return_all=None, always_all=False):
             return instances
 
     return wraps(func)(wrapper)
+
+
+@opt_arguments
+def fetch_only_expired(func, timeout_days, expiration_fieldname='fetched', ids_argument='ids'):
+    """
+    Class method decorator for fetching only expired items. Add parameter `only_expired=False` for decored method.
+    If `only_expired` is True, method substitute argument `ids_argument` with new value, that consist only expired ids.
+    Decorator receive parameters:
+      * `timeout_days` int, number of day, after that instance is suppose to be expired.
+      * `expiration_fieldname` string, name of datetime field, that indicate time of instance last fetching
+      * `ids_argument` string, name of argument, that store list of ids.
+    Usage:
+
+        @fetch_only_expired(timeout_days=3)
+        def fetch_something(self, ..., *kwargs):
+        ....
+    """
+    def wrapper(self, only_expired=False, *args, **kwargs):
+
+        if len(args) > 0:
+            raise ValueError("It's prohibited to use non-key arguments for method decorated with @fetch_all, method is %s.%s(), args=%s" % (self.__class__.__name__, func.__name__, args))
+
+        if only_expired:
+            ids = kwargs[ids_argument]
+            expired_at = datetime.now() - timedelta(timeout_days)
+            ids_non_expired = self.model.objects.filter(**{'%s__gte' % expiration_fieldname: expired_at, 'pk__in': ids}).values_list('pk', flat=True)
+            kwargs[ids_argument] = list(set(ids).difference(set(ids_non_expired)))
+
+            instances = None
+            if len(kwargs[ids_argument]):
+                instances = func(self, **kwargs)
+            return renew_if_not_equal(self.model, instances, ids)
+
+        return func(self, **kwargs)
+
+    return wraps(func)(wrapper)
+
+
+@opt_arguments
+def fetch_by_chunks_of(func, items_limit, ids_argument='ids'):
+    """
+    Class method decorator for fetching ammount of items bigger than allowed at once.
+    Decorator receive parameters:
+      * `items_limit`. Max limit of allowned items to fetch at once
+      * `ids_argument` string, name of argument, that store list of ids.
+    Usage:
+
+        @fetch_by_chunks_of(1000)
+        def fetch_something(self, ..., *kwargs):
+        ....
+    """
+    def wrapper(self, *args, **kwargs):
+
+        if len(args) > 0:
+            raise ValueError("It's prohibited to use non-key arguments for method decorated with @fetch_all, method is %s.%s(), args=%s" % (self.__class__.__name__, func.__name__, args))
+
+        ids = kwargs[ids_argument]
+        if ids:
+            kwargs_sliced = dict(kwargs)
+            for chunk in list_chunks_iterator(ids, self.fetch_users_limit):
+                kwargs_sliced[ids_argument] = chunk
+                instances = func(self, **kwargs_sliced)
+
+            return renew_if_not_equal(self.model, instances, ids)
+        else:
+            return func(self, **kwargs)
+
+    return wraps(func)(wrapper)
+
+
+def renew_if_not_equal(model, instances, ids):
+    return instances if instances is not None and len(ids) == instances.count() else model.objects.filter(pk__in=ids)
+
 
 def opt_generator(func):
     """

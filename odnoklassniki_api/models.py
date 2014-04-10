@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from abc import abstractmethod
 from django.db import models, transaction, IntegrityError
-from django.core.exceptions import ImproperlyConfigured
 from django.db.models.fields import FieldDoesNotExist
 from django.db.models.query import QuerySet
+from django.core.exceptions import ImproperlyConfigured
+from django.utils.six import string_types
 from django.conf import settings
 from datetime import datetime, date
 from odnoklassniki_api.utils import api_call#, OdnoklassnikiError
@@ -296,12 +297,18 @@ class OdnoklassnikiModel(models.Model):
                         pass
 
             elif isinstance(field, models.DateTimeField):
-                try:
-                    value = int(value)
-                    assert value > 0
-                    value = datetime.fromtimestamp(value)
-                except:
-                    value = None
+                if isinstance(value, string_types) and len(value) == 19:
+                    try:
+                        value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]), int(value[11:13]), int(value[14:16]), int(value[17:19]))
+                    except:
+                        value = None
+                else:
+                    try:
+                        value = int(value)
+                        assert value > 0
+                        value = datetime.fromtimestamp(value)
+                    except:
+                        value = None
             elif isinstance(field, models.DateField):
                 try:
                     value = date(int(value[0:4]), int(value[5:7]), int(value[8:10]))

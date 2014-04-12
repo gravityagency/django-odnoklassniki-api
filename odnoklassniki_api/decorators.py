@@ -72,8 +72,9 @@ def fetch_all(func, return_all=None, always_all=False):
                 raise ValueError("Wrong type of response from func %s. It should be QuerySet or list, not a %s" % (func, type(instances)))
 
             # resursive pagination
-            if response['has_more']:
-                return wrapper(self, all=all, instances_all=instances_all, anchor=response['anchor'], **kwargs)
+            if 'has_more' in response and response['has_more'] or 'has_more' not in response and 'anchor' in response:
+                kwargs['anchor'] = response['anchor']
+                return wrapper(self, all=all, instances_all=instances_all, **kwargs)
 
             if return_all:
                 kwargs['instances'] = instances_all

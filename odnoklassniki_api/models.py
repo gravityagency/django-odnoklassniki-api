@@ -9,6 +9,7 @@ from django.conf import settings
 from datetime import datetime, date
 from odnoklassniki_api.utils import api_call#, OdnoklassnikiError
 from odnoklassniki_api import fields
+from fields_api import API_REQUEST_FIELDS
 import logging
 import re
 
@@ -33,6 +34,17 @@ class OdnoklassnikiManager(models.Manager):
     '''
     Odnoklassniki Ads API Manager for RESTful CRUD operations
     '''
+    fields = API_REQUEST_FIELDS
+
+    def get_request_fields(self, *args, **kwargs):
+        fields = []
+        for arg in args:
+            for field in self.fields.get(arg, ''):
+                if kwargs.get('prefix', False):
+                    field = '%s.%s' % (arg, field)
+                fields += [field]
+        return ','.join(fields)
+
     def __init__(self, methods=None, remote_pk=None, *args, **kwargs):
         if methods and len(methods.items()) < 1:
             raise ValueError('Argument methods must contains at least 1 specified method')
@@ -82,6 +94,11 @@ class OdnoklassnikiManager(models.Manager):
 #
 #         return object
 
+    def get_or_create_from_list(self, instances):
+        # python 2.6 compatibility
+#        return self.model.objects.filter(pk__in={self.get_or_create_from_instance(instance).pk for instance in instances})
+        return self.model.objects.filter(pk__in=set([self.get_or_create_from_instance(instance).pk for instance in instances]))
+
     def get_or_create_from_instance(self, instance):
 
         remote_pk_dict = {}
@@ -126,9 +143,7 @@ class OdnoklassnikiManager(models.Manager):
         '''
         result = self.get(*args, **kwargs)
         if isinstance(result, list):
-            # python 2.6 compatibility
-            return self.model.objects.filter(pk__in=set([self.get_or_create_from_instance(instance).pk for instance in result]))
-#            return self.model.objects.filter(pk__in={self.get_or_create_from_instance(instance).pk for instance in result})
+            return self.get_or_create_from_list(result)
         elif isinstance(result, QuerySet):
             return result
         else:
@@ -269,7 +284,7 @@ class OdnoklassnikiModel(models.Model):
             key = key.lower()
             if key == self.remote_pk_field:
                 key = self.remote_pk_local_field
-                value = int(value)
+#                value = int(value)
 
             try:
                 field = self._meta.get_field(key)
@@ -300,6 +315,13 @@ class OdnoklassnikiModel(models.Model):
                 if isinstance(value, string_types) and len(value) == 19:
                     try:
                         value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]), int(value[11:13]), int(value[14:16]), int(value[17:19]))
+                        assert value.year != 1970
+                    except:
+                        value = None
+                elif isinstance(value, string_types) and len(value) == 16:
+                    try:
+                        value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]), int(value[11:13]), int(value[14:16]))
+                        assert value.year != 1970
                     except:
                         value = None
                 else:
@@ -312,19 +334,19 @@ class OdnoklassnikiModel(models.Model):
             elif isinstance(field, models.DateField):
                 try:
                     value = date(int(value[0:4]), int(value[5:7]), int(value[8:10]))
+                    assert value.year != 1970
                 except:
                     value = None
 
-            if isinstance(field, models.OneToOneField) and value:
+            if isinstance(field, (models.OneToOneField, models.ForeignKey)) and value:
                 rel_class = field.rel.to
-                if isinstance(value, int):
-                    try:
-                        rel_instance = rel_class.objects.get(pk=value)
-                    except rel_class.DoesNotExist:
-                        raise OdnoklassnikiParseError("OneToOne relation of model %s (PK=%s) does not exist" % (rel_class.__name__, value))
+                if isinstance(value, dict):
+                    value = rel_class().parse(dict(value))
                 else:
-                    rel_instance = rel_class().parse(dict(value))
-                value = rel_instance
+                    try:
+                        value = rel_class.objects.get(pk=value)
+                    except rel_class.DoesNotExist:
+                        key = key + '_id'
 
             if isinstance(field, (fields.CommaSeparatedCharField, models.CommaSeparatedIntegerField)) and isinstance(value, list):
                 value = ','.join([unicode(v) for v in value])
@@ -342,7 +364,7 @@ class OdnoklassnikiModel(models.Model):
             raise OdnoklassnikiContentError("Remote server returned more objects, than expected - %d instead of one. Object details: %s, request details: %s" % (len(objects), self.__dict__, kwargs))
 
     def get_url(self):
-        return 'http://vk.com/%s' % self.slug
+        return 'http://odnoklassniki.ru/%s' % self.slug
 
     @property
     def refresh_kwargs(self):

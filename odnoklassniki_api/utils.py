@@ -21,14 +21,17 @@ class NoActiveTokens(Exception):
     pass
 
 def refresh_tokens(count=1):
-    try:
-        return AccessToken.objects.refresh('odnoklassniki')
-    except AccessTokenRefreshingError, e:
-        if count <= 5:
-            time.sleep(1)
-            refresh_tokens(count+1)
-        else:
-            raise e
+    if ACCESS_TOKEN:
+        update_tokens()
+    else:
+        try:
+            return AccessToken.objects.refresh('odnoklassniki')
+        except AccessTokenRefreshingError, e:
+            if count <= 5:
+                time.sleep(1)
+                refresh_tokens(count+1)
+            else:
+                raise e
 
 def update_tokens(count=1):
     '''
@@ -84,6 +87,9 @@ def api_call(method, recursion_count=0, methods_access_tag=None, used_access_tok
     except OdnoklassnikiError, e:
         if e.code == 102:
             refresh_tokens()
+            return api_call(method, recursion_count+1, methods_access_tag, **kwargs)
+        elif e.code is None and e.message == 'HTTP error':
+            time.sleep(1)
             return api_call(method, recursion_count+1, methods_access_tag, **kwargs)
         else:
             raise e

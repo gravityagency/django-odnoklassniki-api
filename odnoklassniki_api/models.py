@@ -55,45 +55,40 @@ class OdnoklassnikiManager(models.Manager):
 
         super(OdnoklassnikiManager, self).__init__(*args, **kwargs)
 
-#     def get_by_url(self, url):
-#         '''
-#         Return vkonakte object by url
-#         '''
-#         m = re.findall(r'^(?:https?://)?vk.com/([^/]+)/?$', url)
-#         if not len(m):
-#             raise ValueError("Url should be started with http://vk.com/")
-#
-#         return self.get_by_slug(m[0])
-#
-#     def get_by_slug(self, slug):
-#         '''
-#         Return existed User, Group, Application by slug or new intance with empty pk
-#         '''
-#         try:
-#             assert self.model.slug_prefix and slug.startswith(self.model.slug_prefix)
-#             remote_id = int(re.findall(r'^%s(\d+)$' % self.model.slug_prefix, slug)[0])
-#         except (AssertionError, ValueError, IndexError):
-#             try:
-#                 response = api_call('resolveScreenName', **{'screen_name': slug})
-#                 assert self.model.resolve_screen_name_type == response['type']
-#                 remote_id = int(response['object_id'])
-#             except OdnoklassnikiError, e:
-#                 log.error("Method get_by_slug returned error instead of response. Slug: '%s'. Error: %s" % (slug, e))
-#                 return None
-#             except (KeyError, TypeError, ValueError), e:
-#                 log.error("Method get_by_slug returned response in strange format: %s. Slug is '%s'" % (response, slug))
-#                 return None
-#             except AssertionError:
-#                 log.error("Method get_by_slug returned instance with wrong type '%s', not '%s'. Slug is '%s'" % (response['type'], self.model.resolve_screen_name_type, slug))
-#                 return None
-#
-#         try:
-#             object = self.model.objects.get(remote_id=remote_id)
-#             object.screen_name = slug
-#         except self.model.DoesNotExist:
-#             object = self.model(remote_id=remote_id, screen_name=slug)
-#
-#         return object
+    def get_by_url(self, url):
+        '''
+        Return existed User, Group, Application by url or new intance with empty pk
+        '''
+        m = re.findall(r'^(?:https?://)?(?:www.)?(?:ok.ru|odnoklassniki.ru)/(.+)/?$', url)
+        if not len(m):
+            raise ValueError("Wrong domain: %s" % url)
+
+        slug = m[0]
+
+        try:
+            assert self.model.slug_prefix and slug.startswith(self.model.slug_prefix)
+            id = int(re.findall(r'^%s(\d+)$' % self.model.slug_prefix, slug)[0])
+        except (AssertionError, ValueError, IndexError):
+            try:
+                response = api_call('url.getInfo', url=url)
+                assert self.model.resolve_screen_name_type == response['type']
+                id = int(response['objectId'])
+            except OdnoklassnikiError, e:
+                log.error("Method get_by_slug returned error instead of response. URL='%s'. Error: %s" % (url, e))
+                return None
+            except (KeyError, TypeError, ValueError), e:
+                log.error("Method get_by_slug returned response in strange format: %s. URL='%s'" % (response, url))
+                return None
+            except AssertionError:
+                log.error("Method get_by_slug returned instance with wrong type '%s', not '%s'. URL='%s'" % (response['type'], self.model.resolve_screen_name_type, url))
+                return None
+
+        try:
+            object = self.model.objects.get(id=id)
+        except self.model.DoesNotExist:
+            object = self.model(id=id)#, shortname=slug)
+
+        return object
 
     def get_or_create_from_instances_list(self, instances):
         # python 2.6 compatibility
@@ -269,6 +264,7 @@ class OdnoklassnikiModel(models.Model):
     remote_pk_local_field = 'id'
     methods_access_tag = ''
     methods_namespace = ''
+    slug_prefix = ''
 
     fetched = models.DateTimeField(u'Обновлено', null=True, blank=True, db_index=True)
 

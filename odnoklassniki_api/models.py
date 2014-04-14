@@ -9,6 +9,7 @@ from django.conf import settings
 from datetime import datetime, date
 from odnoklassniki_api.utils import api_call#, OdnoklassnikiError
 from odnoklassniki_api import fields
+from odnoklassniki_api.decorators import atomic
 from fields_api import API_REQUEST_FIELDS
 import logging
 import re
@@ -94,10 +95,14 @@ class OdnoklassnikiManager(models.Manager):
 #
 #         return object
 
-    def get_or_create_from_list(self, instances):
+    def get_or_create_from_instances_list(self, instances):
         # python 2.6 compatibility
 #        return self.model.objects.filter(pk__in={self.get_or_create_from_instance(instance).pk for instance in instances})
         return self.model.objects.filter(pk__in=set([self.get_or_create_from_instance(instance).pk for instance in instances]))
+
+    def get_or_create_from_resources_list(self, response_list, extra_fields=None):
+        instances = self.parse_response_list(response_list, extra_fields)
+        return self.get_or_create_from_instances_list(instances)
 
     def get_or_create_from_instance(self, instance):
 
@@ -136,14 +141,14 @@ class OdnoklassnikiManager(models.Manager):
 
         return api_call(method, **kwargs)
 
-    @transaction.commit_on_success
+    @atomic
     def fetch(self, *args, **kwargs):
         '''
         Retrieve and save object to local DB
         '''
         result = self.get(*args, **kwargs)
         if isinstance(result, list):
-            return self.get_or_create_from_list(result)
+            return self.get_or_create_from_instances_list(result)
         elif isinstance(result, QuerySet):
             return result
         else:
@@ -216,7 +221,7 @@ class OdnoklassnikiManager(models.Manager):
 #     def get_timeline_date(self, instance):
 #         return getattr(instance, self.timeline_cut_fieldname, None)
 #
-#     @transaction.commit_on_success
+#     @atomic
 #     def fetch(self, *args, **kwargs):
 #         '''
 #         Retrieve and save object to local DB
@@ -275,6 +280,12 @@ class OdnoklassnikiModel(models.Model):
         Can be overrided in child models
         '''
         self.pk = old_instance.pk
+
+        # substitute all valueble fields fom old_instance
+        for key, old_value in old_instance.__dict__.items():
+            new_value = getattr(self, key)
+            if old_value and (new_value is None or new_value == ''):
+                setattr(self, key, old_value)
 
     def parse(self, response):
         '''

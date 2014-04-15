@@ -365,10 +365,15 @@ class OdnoklassnikiModel(models.Model):
         Refresh current model with remote data
         """
         objects = self.__class__.remote.fetch(**self.refresh_kwargs)
-        if len(objects) == 1:
-            self.__dict__.update(objects[0].__dict__)
-        else:
-            raise OdnoklassnikiContentError("Remote server returned more objects, than expected - %d instead of one. Object details: %s, request details: %s" % (len(objects), self.__dict__, kwargs))
+        if isinstance(objects, models.Model):
+            new_instance = objects
+        elif isinstance(objects, (list, tuple, QuerySet)):
+            if len(objects) == 1:
+                new_instance = objects[0]
+            else:
+                raise OdnoklassnikiContentError("Remote server returned more objects, than expected - %d instead of one. Object details: %s, request details: %s" % (len(objects), self.__dict__, kwargs))
+
+        self.__dict__.update(new_instance.__dict__)
 
     def get_url(self):
         return 'http://odnoklassniki.ru/%s' % self.slug

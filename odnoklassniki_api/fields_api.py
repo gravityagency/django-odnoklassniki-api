@@ -42,6 +42,57 @@ API_REQUEST_FIELDS = {
         'sender_refs',
         'receiver_refs',
     ],
+    'group_album': [
+        'aid',
+        'author_name',
+        'author_type',
+        'created',
+        'group_id',
+        # Next one yeild 'attrs' attribute in OK server response. 
+        'like_allowed',
+        'like_summary',
+        'photos_count',
+        # Next one present in docs still its meaning is unknown
+        'ref', 
+        'title',
+        'user_id',
+        # Next 3 are documented. Still yeild no results for group album
+        'modify_allowed',
+        'delete_allowed',
+        'add_photo_allowed',
+    ],
+    'group_photo': [
+        'album_id',
+        'author_name',
+        'author_type',
+        'comments_count',
+        'created_ms',
+        'discussion_summary',
+        'group_id',
+        'id',
+        'like_count',
+        'like_summary',
+        # Undocumented alas retuned in resp to group_photo.*
+        'liked_it',
+        # Next 2 yeild 'attrs' attribute in OK server response. 
+        'like_allowed', 
+        'mark_as_spam_allowed',
+        # Next one is undocumented. Returned in response to fields: group_photo.*
+        'pic1024max', 
+        'pic1024x768',
+        'pic128max',
+        'pic128x128',
+        'pic180min',
+        # Next one present in docs. Still yeilds no results for group photos.getPhotos
+        'pic190x190', 
+        'pic240min',
+        'pic320min',
+        'pic50x50',
+        'pic640x480',
+        'standard_height',
+        'standard_width',
+        'text',
+    ],
     'discussion': [
         'object_type',
         'object_id',

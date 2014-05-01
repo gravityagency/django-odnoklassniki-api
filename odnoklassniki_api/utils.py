@@ -99,6 +99,6 @@ def api_call(method, recursion_count=0, methods_access_tag=None, used_access_tok
         return api_call(method, recursion_count+1, methods_access_tag, **kwargs)
     except Exception, e:
         log.error("Unhandled error: %s registered while executing method %s with params %s" % (e, method, kwargs))
-        raise e
+        raise
 
     return response

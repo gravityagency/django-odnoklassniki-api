@@ -72,8 +72,8 @@ def fetch_all(func, return_all=None, always_all=False):
                 raise ValueError("Wrong type of response from func %s. It should be QuerySet or list, not a %s" % (func, type(instances)))
 
             # resursive pagination
-            if 'has_more' in response and response['has_more'] or 'has_more' not in response and 'anchor' in response:
-                kwargs['anchor'] = response['anchor']
+            if 'hasMore' in response and response['hasMore'] or 'hasMore' not in response and 'pagingAnchor' in response:
+                kwargs['pagingAnchor'] = response['pagingAnchor']
                 return wrapper(self, all=all, instances_all=instances_all, **kwargs)
 
             if return_all:
@@ -144,7 +144,7 @@ def fetch_by_chunks_of(func, items_limit, ids_argument='ids'):
         ids = kwargs[ids_argument]
         if ids:
             kwargs_sliced = dict(kwargs)
-            for chunk in list_chunks_iterator(ids, self.fetch_users_limit):
+            for chunk in list_chunks_iterator(ids, items_limit):
                 kwargs_sliced[ids_argument] = chunk
                 instances = func(self, **kwargs_sliced)
 

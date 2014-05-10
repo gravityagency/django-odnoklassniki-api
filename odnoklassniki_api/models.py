@@ -13,6 +13,8 @@ from odnoklassniki_api.decorators import atomic
 from fields_api import API_REQUEST_FIELDS
 import logging
 import re
+from pytz import timezone, utc
+
 
 log = logging.getLogger('odnoklassniki_api')
 
@@ -155,7 +157,7 @@ class OdnoklassnikiManager(models.Manager):
         TODO: rename everywhere extra_fields to _extra_fields
         '''
         extra_fields = kwargs.pop('extra_fields', {})
-        extra_fields['fetched'] = datetime.now()
+        extra_fields['fetched'] = datetime.utcnow().replace(tzinfo=utc)
 
         response = self.api_call(*args, **kwargs)
 
@@ -322,12 +324,14 @@ class OdnoklassnikiModel(models.Model):
                 if isinstance(value, string_types) and len(value) == 19:
                     try:
                         value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]), int(value[11:13]), int(value[14:16]), int(value[17:19]))
+                        value = timezone('Europe/Moscow').localize(value)
                         assert value.year != 1970
                     except:
                         value = None
                 elif isinstance(value, string_types) and len(value) == 16:
                     try:
                         value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]), int(value[11:13]), int(value[14:16]))
+                        value = timezone('Europe/Moscow').localize(value)
                         assert value.year != 1970
                     except:
                         value = None
@@ -335,7 +339,7 @@ class OdnoklassnikiModel(models.Model):
                     try:
                         value = int(value)
                         assert value > 0
-                        value = datetime.fromtimestamp(value)
+                        value = datetime.utcfromtimestamp(value).replace(tzinfo=utc)
                     except:
                         value = None
             elif isinstance(field, models.DateField):

@@ -35,7 +35,7 @@ def opt_arguments(func):
 
 
 @opt_arguments
-def fetch_all(func, return_all=None, always_all=False):
+def fetch_all(func, return_all=None, always_all=False, pagination='anchor'):
     """
     Class method decorator for fetching all items. Add parameter `all=False` for decored method.
     If `all` is True, method runs as many times as it returns any results.
@@ -63,17 +63,35 @@ def fetch_all(func, return_all=None, always_all=False):
             if isinstance(instances, QuerySet):
                 if not instances_all:
                     instances_all = QuerySet().none()
-                instances_all |= instances
+
+                if instances.count() == 0:
+                    # quit when no results returned - the end is reached
+                    if return_all:
+                        kwargs['instances'] = instances_all
+                        return return_all(self, **kwargs)
+                    else:
+                        return instances_all
+                else:
+                    instances_all |= instances
             elif isinstance(instances, list):
                 if not instances_all:
                     instances_all = []
-                instances_all += instances
+
+                if len(instances) == 0:
+                    # quit when no results returned - the end is reached
+                    return instances_all
+                else:
+                    if return_all:
+                        kwargs['instances'] = instances_all
+                        return return_all(self, **kwargs)
+                    else:
+                        instances_all += instances
             else:
                 raise ValueError("Wrong type of response from func %s. It should be QuerySet or list, not a %s" % (func, type(instances)))
 
-            # resursive pagination
-            if 'hasMore' in response and response['hasMore'] or 'hasMore' not in response and 'pagingAnchor' in response:
-                kwargs['pagingAnchor'] = response['pagingAnchor']
+            # recursive pagination
+            if pagination in response:
+                kwargs[pagination] = response.get(pagination)
                 return wrapper(self, all=all, instances_all=instances_all, **kwargs)
 
             if return_all:

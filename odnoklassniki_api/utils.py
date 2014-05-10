@@ -31,7 +31,7 @@ def refresh_tokens(count=1):
                 time.sleep(1)
                 refresh_tokens(count+1)
             else:
-                raise e
+                raise
 
 def update_tokens(count=1):
     '''
@@ -44,7 +44,7 @@ def update_tokens(count=1):
             time.sleep(1)
             update_tokens(count+1)
         else:
-            raise e
+            raise
 
 def get_api(used_access_tokens=None, *args, **kwargs):
     '''
@@ -92,7 +92,7 @@ def api_call(method, recursion_count=0, methods_access_tag=None, used_access_tok
             time.sleep(1)
             return api_call(method, recursion_count+1, methods_access_tag, **kwargs)
         else:
-            raise e
+            raise
     except SSLError, e:
         log.error("SSLError: '%s' registered while executing method %s with params %s, recursion count: %d" % (e, method, kwargs, recursion_count))
         time.sleep(1)

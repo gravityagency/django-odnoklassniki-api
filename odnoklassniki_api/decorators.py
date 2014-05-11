@@ -63,34 +63,19 @@ def fetch_all(func, return_all=None, always_all=False, pagination='anchor'):
             if isinstance(instances, QuerySet):
                 if not instances_all:
                     instances_all = QuerySet().none()
-
-                if instances.count() == 0:
-                    # quit when no results returned - the end is reached
-                    if return_all:
-                        kwargs['instances'] = instances_all
-                        return return_all(self, **kwargs)
-                    else:
-                        return instances_all
-                else:
+                instances_count = instances.count()
+                if instances_count:
                     instances_all |= instances
             elif isinstance(instances, list):
                 if not instances_all:
                     instances_all = []
-
-                if len(instances) == 0:
-                    # quit when no results returned - the end is reached
-                    return instances_all
-                else:
-                    if return_all:
-                        kwargs['instances'] = instances_all
-                        return return_all(self, **kwargs)
-                    else:
-                        instances_all += instances
+                instances_count = len(instances)
+                instances_all += instances
             else:
                 raise ValueError("Wrong type of response from func %s. It should be QuerySet or list, not a %s" % (func, type(instances)))
 
             # recursive pagination
-            if pagination in response:
+            if instances_count and ('has_more' in response and response['has_more'] or 'has_more' not in response and pagination in response):
                 kwargs[pagination] = response.get(pagination)
                 return wrapper(self, all=all, instances_all=instances_all, **kwargs)
 

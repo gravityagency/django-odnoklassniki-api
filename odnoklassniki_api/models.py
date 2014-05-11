@@ -11,9 +11,9 @@ from odnoklassniki_api.utils import api_call#, OdnoklassnikiError
 from odnoklassniki_api import fields
 from odnoklassniki_api.decorators import atomic
 from fields_api import API_REQUEST_FIELDS
+from pytz import timezone, utc
 import logging
 import re
-from pytz import timezone, utc
 
 
 log = logging.getLogger('odnoklassniki_api')
@@ -321,16 +321,14 @@ class OdnoklassnikiModel(models.Model):
                         pass
 
             elif isinstance(field, models.DateTimeField):
-                if isinstance(value, string_types) and len(value) == 19:
+
+
+                if isinstance(value, string_types) and len(value) >= 16:
                     try:
-                        value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]), int(value[11:13]), int(value[14:16]), int(value[17:19]))
-                        value = timezone('Europe/Moscow').localize(value)
-                        assert value.year != 1970
-                    except:
-                        value = None
-                elif isinstance(value, string_types) and len(value) == 16:
-                    try:
-                        value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]), int(value[11:13]), int(value[14:16]))
+                        if len(value) == 19:
+                            value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]), int(value[11:13]), int(value[14:16]), int(value[17:19]))
+                        elif len(value) == 16:
+                            value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]), int(value[11:13]), int(value[14:16]))
                         value = timezone('Europe/Moscow').localize(value)
                         assert value.year != 1970
                     except:

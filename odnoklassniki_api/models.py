@@ -53,7 +53,7 @@ class OdnoklassnikiManager(models.Manager):
             raise ValueError('Argument methods must contains at least 1 specified method')
 
         self.methods = methods or {}
-        self.remote_pk = remote_pk or ('pk',)
+        self.remote_pk = remote_pk or ('id',)
 
         super(OdnoklassnikiManager, self).__init__(*args, **kwargs)
 

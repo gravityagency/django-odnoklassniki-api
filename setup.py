@@ -20,6 +20,7 @@ setup(
         'django-oauth-tokens>=0.3.0',
         'odnoklassniki',
         'simplejson',
+        'pytz',
     ],
     classifiers=[
         'Development Status :: 4 - Beta',

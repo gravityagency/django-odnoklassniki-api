@@ -21,12 +21,11 @@ Django Odnoklassniki API
 
     # oauth-tokens settings
     OAUTH_TOKENS_HISTORY = True                                             # to keep in DB expired access tokens
-    OAUTH_TOKENS_ODNOKLASSNIKI_CLIENT_ID = ''                               # application ID
+    OAUTH_TOKENS_ODNOKLASSNIKI_CLIENT_PUBLIC = ''                           # application public key
     OAUTH_TOKENS_ODNOKLASSNIKI_CLIENT_SECRET = ''                           # application secret key
-    OAUTH_TOKENS_ODNOKLASSNIKI_SCOPE = ['ads,wall,photos,friends,stats']    # application scopes
+    OAUTH_TOKENS_ODNOKLASSNIKI_SCOPE = ['']                                 # application scopes
     OAUTH_TOKENS_ODNOKLASSNIKI_USERNAME = ''                                # user login
     OAUTH_TOKENS_ODNOKLASSNIKI_PASSWORD = ''                                # user password
-    OAUTH_TOKENS_ODNOKLASSNIKI_PHONE_END = ''                               # last 4 digits of user mobile phone
 
 Покрытие методов API
 --------------------
@@ -38,8 +37,6 @@ Django Odnoklassniki API
 
 ### Запрос API
 
-    >>> from vkontakte_api.utils import api_call
-    >>> api_call('resolveScreenName', **{'screen_name': 'durov'})
-    {u'object_id': 1, u'type': u'user'}
-    >>> api_call('users.get', **{'user_ids': 'durov'})
-    [{'first_name': u'Павел', 'last_name': u'Дуров', 'uid': 1}]
+    >>> from odnoklassniki_api.utils import api_call
+    >>> api_call('url.getInfo', url='http://www.odnoklassniki.ru/apiok')
+    {u'objectId': 53038939046008L, u'type': u'GROUP'}

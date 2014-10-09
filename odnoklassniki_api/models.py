@@ -320,7 +320,7 @@ class OdnoklassnikiModel(models.Model):
                     except:
                         pass
 
-            elif isinstance(field, models.DateTimeField):
+            elif isinstance(field, (models.DateTimeField, models.DateField)):
 
 
                 if isinstance(value, string_types) and len(value) >= 16:
@@ -333,6 +333,13 @@ class OdnoklassnikiModel(models.Model):
                         assert value.year != 1970
                     except:
                         value = None
+
+                if isinstance(value, string_types) and len(value) == 10:
+                    try:
+                        value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]))
+                        assert value.year != 1970
+                    except:
+                        value = None
                 else:
                     try:
                         value = int(value)
@@ -340,12 +347,6 @@ class OdnoklassnikiModel(models.Model):
                         value = datetime.utcfromtimestamp(value).replace(tzinfo=utc)
                     except:
                         value = None
-            elif isinstance(field, models.DateField):
-                try:
-                    value = date(int(value[0:4]), int(value[5:7]), int(value[8:10]))
-                    assert value.year != 1970
-                except:
-                    value = None
 
             if isinstance(field, (models.OneToOneField, models.ForeignKey)) and value:
                 rel_class = field.rel.to

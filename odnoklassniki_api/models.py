@@ -323,20 +323,15 @@ class OdnoklassnikiModel(models.Model):
             elif isinstance(field, (models.DateTimeField, models.DateField)):
 
 
-                if isinstance(value, string_types) and len(value) >= 16:
+                if isinstance(value, string_types) and len(value) >= 10:
                     try:
                         if len(value) == 19:
                             value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]), int(value[11:13]), int(value[14:16]), int(value[17:19]))
                         elif len(value) == 16:
                             value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]), int(value[11:13]), int(value[14:16]))
+                        elif len(value) == 10:
+                            value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]))
                         value = timezone('Europe/Moscow').localize(value)
-                        assert value.year != 1970
-                    except:
-                        value = None
-
-                if isinstance(value, string_types) and len(value) == 10:
-                    try:
-                        value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]))
                         assert value.year != 1970
                     except:
                         value = None

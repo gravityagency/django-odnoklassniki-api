@@ -7,7 +7,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils.six import string_types
 from django.conf import settings
 from datetime import datetime, date
-from odnoklassniki_api.utils import api_call#, OdnoklassnikiError
+from odnoklassniki_api.utils import api_call, OdnoklassnikiError
 from odnoklassniki_api import fields
 from odnoklassniki_api.decorators import atomic
 from fields_api import API_REQUEST_FIELDS

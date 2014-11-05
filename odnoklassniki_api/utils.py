@@ -2,6 +2,7 @@ from django.conf import settings
 from oauth_tokens.models import AccessToken, AccessTokenGettingError, AccessTokenRefreshingError
 from ssl import SSLError
 from odnoklassniki import api, OdnoklassnikiError
+from simplejson.decoder import JSONDecodeError
 import time
 import logging
 
@@ -93,9 +94,8 @@ def api_call(method, recursion_count=0, methods_access_tag=None, used_access_tok
             return api_call(method, recursion_count+1, methods_access_tag, **kwargs)
         else:
             raise
-    except SSLError, e:
-        log.error("SSLError: '%s' registered while executing method %s with params %s, recursion count: %d" % (e, method, kwargs, recursion_count))
-        time.sleep(1)
+    except (SSLError, JSONDecodeError), e:
+        log.error("Exception: '%s' registered while executing method %s with params %s, recursion count: %d" % (e, method, kwargs, recursion_count))
         return api_call(method, recursion_count+1, methods_access_tag, **kwargs)
     except Exception, e:
         log.error("Unhandled error: %s registered while executing method %s with params %s" % (e, method, kwargs))

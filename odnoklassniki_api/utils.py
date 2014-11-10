@@ -89,6 +89,10 @@ def api_call(method, recursion_count=0, methods_access_tag=None, used_access_tok
         if e.code == 102:
             refresh_tokens()
             return api_call(method, recursion_count+1, methods_access_tag, **kwargs)
+        if e.code == 2:
+            # SERVICE : Service is temporary unavailable., logged by ID :
+            sleep(1)
+            return api_call(method, recursion_count+1, methods_access_tag, **kwargs)
         elif e.code is None and e.message == 'HTTP error':
             time.sleep(1)
             return api_call(method, recursion_count+1, methods_access_tag, **kwargs)

@@ -3,6 +3,7 @@ from oauth_tokens.models import AccessToken, AccessTokenGettingError, AccessToke
 from ssl import SSLError
 from odnoklassniki import api, OdnoklassnikiError
 from simplejson.decoder import JSONDecodeError
+from time import sleep
 import time
 import logging
 

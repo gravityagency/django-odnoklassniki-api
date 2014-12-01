@@ -235,6 +235,11 @@ class OdnoklassnikiTimelineManager(OdnoklassnikiManager):
         after = kwargs.pop('after', None)
         before = kwargs.pop('before', None)
 
+        if before and not after:
+            raise ValueError("Attribute `before` should be specified with attribute `after`")
+        if before and before < after:
+            raise ValueError("Attribute `before` should be later, than attribute `after`")
+
         result = super(OdnoklassnikiTimelineManager, self).get(*args, **kwargs)
 
         if self.timeline_force_ordering:

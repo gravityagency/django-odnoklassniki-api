@@ -1,25 +1,27 @@
 # -*- coding: utf-8 -*-
 from abc import abstractmethod
-from django.db import models, transaction, IntegrityError
-from django.db.models.fields import FieldDoesNotExist
-from django.db.models.query import QuerySet
-from django.core.exceptions import ImproperlyConfigured
-from django.utils.six import string_types
-from django.conf import settings
 from datetime import datetime, date
-from odnoklassniki_api.utils import api_call, OdnoklassnikiError
-from odnoklassniki_api import fields
-from odnoklassniki_api.decorators import atomic
-from fields_api import API_REQUEST_FIELDS
-from pytz import timezone, utc
 import logging
 import re
 
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+from django.db import models, transaction, IntegrityError
+from django.db.models.fields import FieldDoesNotExist
+from django.db.models.query import QuerySet
+from django.utils.six import string_types
+import fields
+from pytz import timezone, utc
+
+from .decorators import atomic
+from .fields_api import API_REQUEST_FIELDS
+from .utils import api_call, OdnoklassnikiError
 
 log = logging.getLogger('odnoklassniki_api')
 
 COMMIT_REMOTE = getattr(settings, 'ODNOKLASSNIKI_API_COMMIT_REMOTE', True)
 MASTER_DATABASE = getattr(settings, 'ODNOKLASSNIKI_API_MASTER_DATABASE', 'default')
+
 
 class OdnoklassnikiDeniedAccessError(Exception):
     pass
@@ -34,6 +36,7 @@ class OdnoklassnikiParseError(Exception):
 
 
 class OdnoklassnikiManager(models.Manager):
+
     '''
     Odnoklassniki Ads API Manager for RESTful CRUD operations
     '''
@@ -82,19 +85,22 @@ class OdnoklassnikiManager(models.Manager):
                 log.error("Method get_by_slug returned response in strange format: %s. URL='%s'" % (response, url))
                 return None
             except AssertionError:
-                log.error("Method get_by_slug returned instance with wrong type '%s', not '%s'. URL='%s'" % (response['type'], self.model.resolve_screen_name_type, url))
+                log.error("Method get_by_slug returned instance with wrong type '%s', not '%s'. URL='%s'" %
+                          (response['type'], self.model.resolve_screen_name_type, url))
                 return None
 
         try:
             object = self.model.objects.get(id=id)
         except self.model.DoesNotExist:
-            object = self.model(id=id)#, shortname=slug)
+            object = self.model(id=id)  # , shortname=slug)
 
         return object
 
     def get_or_create_from_instances_list(self, instances):
         # python 2.6 compatibility
-#        return self.model.objects.filter(pk__in={self.get_or_create_from_instance(instance).pk for instance in instances})
+        # return
+        # self.model.objects.filter(pk__in={self.get_or_create_from_instance(instance).pk
+        # for instance in instances})
         return self.model.objects.filter(pk__in=set([self.get_or_create_from_instance(instance).pk for instance in instances]))
 
     def get_or_create_from_resources_list(self, response_list, extra_fields=None):
@@ -159,9 +165,9 @@ class OdnoklassnikiManager(models.Manager):
         extra_fields = kwargs.pop('extra_fields', {})
         extra_fields['fetched'] = datetime.utcnow().replace(tzinfo=utc)
 
-        response = self.api_call(*args, **kwargs)
+        self.response = self.api_call(*args, **kwargs)
 
-        return self.parse_response(response, extra_fields)
+        return self.parse_response(self.response, extra_fields)
 
     def parse_response(self, response, extra_fields=None):
         if isinstance(response, (list, tuple)):
@@ -208,56 +214,52 @@ class OdnoklassnikiManager(models.Manager):
         return instances
 
 
-# class OdnoklassnikiTimelineManager(OdnoklassnikiManager):
-#     '''
-#     Manager class, child of OdnoklassnikiManager for fetching objects with arguments `after`, `before`
-#     '''
-#     timeline_cut_fieldname = 'date'
-#     timeline_force_ordering = False
-#
-#     def get_timeline_date(self, instance):
-#         return getattr(instance, self.timeline_cut_fieldname, None)
-#
-#     @atomic
-#     def fetch(self, *args, **kwargs):
-#         '''
-#         Retrieve and save object to local DB
-#         Return queryset with respect to parameters:
-#          * 'after' - excluding all items before.
-#          * 'before' - excluding all items after.
-#         '''
-#         after = kwargs.pop('after', None)
-#         before = kwargs.pop('before', None)
-#
-#         result = self.get(*args, **kwargs)
-#         if isinstance(result, list):
-#             instances = self.model.objects.none()
-#
-#             if self.timeline_force_ordering:
-#                 result.sort(key=self.get_timeline_date, reverse=True)
-#
-#             for instance in result:
-#
-#                 timeline_date = self.get_timeline_date(instance)
-#
-#                 if timeline_date and isinstance(timeline_date, datetime):
-#
-#                     if after and after > timeline_date:
-#                         break
-#
-#                     if before and before < timeline_date:
-#                         continue
-#
-#                 instance = self.get_or_create_from_instance(instance)
-#                 instances |= instance.__class__.objects.filter(pk=instance.pk)
-#             return instances
-#         elif isinstance(result, QuerySet):
-#             return result
-#         else:
-#             return self.get_or_create_from_instance(result)
+class OdnoklassnikiTimelineManager(OdnoklassnikiManager):
+
+    '''
+    Manager class, child of OdnoklassnikiManager for fetching objects with arguments `after`, `before`
+    '''
+    timeline_cut_fieldname = 'date'
+    timeline_force_ordering = False
+
+    def get_timeline_date(self, instance):
+        return getattr(instance, self.timeline_cut_fieldname, datetime(1970, 1, 1).replace(tzinfo=utc))
+
+    @atomic
+    def get(self, *args, **kwargs):
+        '''
+        Retrieve objects and return result list with respect to parameters:
+         * 'after' - excluding all items before.
+         * 'before' - excluding all items after.
+        '''
+        after = kwargs.pop('after', None)
+        before = kwargs.pop('before', None)
+
+        result = super(OdnoklassnikiTimelineManager, self).get(*args, **kwargs)
+
+        if self.timeline_force_ordering:
+            result.sort(key=self.get_timeline_date, reverse=True)
+
+        instances = []
+        for instance in result:
+
+            timeline_date = self.get_timeline_date(instance)
+
+            if timeline_date and isinstance(timeline_date, datetime):
+
+                if after and after > timeline_date:
+                    break
+
+                if before and before < timeline_date:
+                    continue
+
+            instances += [instance]
+
+        return instances
 
 
 class OdnoklassnikiModel(models.Model):
+
     class Meta:
         abstract = True
 
@@ -322,13 +324,14 @@ class OdnoklassnikiModel(models.Model):
 
             elif isinstance(field, (models.DateTimeField, models.DateField)):
 
-
                 if isinstance(value, string_types) and len(value) >= 10:
                     try:
                         if len(value) == 19:
-                            value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]), int(value[11:13]), int(value[14:16]), int(value[17:19]))
+                            value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]), int(
+                                value[11:13]), int(value[14:16]), int(value[17:19]))
                         elif len(value) == 16:
-                            value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]), int(value[11:13]), int(value[14:16]))
+                            value = datetime(int(value[0:4]), int(value[5:7]), int(
+                                value[8:10]), int(value[11:13]), int(value[14:16]))
                         elif len(value) == 10:
                             value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]))
                         value = timezone('Europe/Moscow').localize(value)
@@ -362,14 +365,15 @@ class OdnoklassnikiModel(models.Model):
         """
         Refresh current model with remote data
         """
-        objects = self.__class__.remote.fetch(**self.refresh_kwargs)
+        objects = self.__class__.remote.fetch_one(**self.refresh_kwargs)
         if isinstance(objects, models.Model):
             new_instance = objects
         elif isinstance(objects, (list, tuple, QuerySet)):
             if len(objects) == 1:
                 new_instance = objects[0]
             else:
-                raise OdnoklassnikiContentError("Remote server returned more objects, than expected - %d instead of one. Object details: %s, request details: %s" % (len(objects), self.__dict__, kwargs))
+                raise OdnoklassnikiContentError(
+                    "Remote server returned more objects, than expected - %d instead of one. Object details: %s, request details: %s" % (len(objects), self.__dict__, kwargs))
 
         self.__dict__.update(new_instance.__dict__)
 
@@ -413,6 +417,7 @@ class OdnoklassnikiModel(models.Model):
 
 
 class OdnoklassnikiPKModel(OdnoklassnikiModel):
+
     class Meta:
         abstract = True
 
@@ -434,10 +439,10 @@ class OdnoklassnikiPKModel(OdnoklassnikiModel):
 #     class Meta:
 #         abstract = True
 #
-#     # list of required number of fields for updating model remotely
+# list of required number of fields for updating model remotely
 #     fields_required_for_update = []
 #
-#     # flag should we update model remotely on save() and delete() methods
+# flag should we update model remotely on save() and delete() methods
 #     _commit_remote = True
 #
 #     archived = models.BooleanField(u'В архиве', default=False)
@@ -475,7 +480,7 @@ class OdnoklassnikiPKModel(OdnoklassnikiModel):
 #
 #     def update_remote(self, **kwargs):
 #         params = self.prepare_update_params_distinct(**kwargs)
-#         # sometimes response contains 1, sometimes remote_id
+# sometimes response contains 1, sometimes remote_id
 #         response = self.__class__.remote.api_call(method='update', **params)
 #         if not response:
 #             message = "Error response '%s' while saving remote %s with ID %s and data '%s'" \

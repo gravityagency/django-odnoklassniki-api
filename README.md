@@ -37,6 +37,6 @@ Django Odnoklassniki API
 
 ### Запрос API
 
-    >>> from odnoklassniki_api.utils import api_call
+    >>> from odnoklassniki_api.api import api_call
     >>> api_call('url.getInfo', url='http://www.odnoklassniki.ru/apiok')
     {u'objectId': 53038939046008L, u'type': u'GROUP'}

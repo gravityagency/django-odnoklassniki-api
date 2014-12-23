@@ -13,9 +13,9 @@ from django.utils.six import string_types
 import fields
 from pytz import timezone, utc
 
+from .api import api_call, OdnoklassnikiError
 from .decorators import atomic
 from .fields_api import API_REQUEST_FIELDS
-from .utils import api_call, OdnoklassnikiError
 
 log = logging.getLogger('odnoklassniki_api')
 

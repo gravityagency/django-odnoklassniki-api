@@ -1,5 +1,4 @@
-import time
-
+# -*- coding: utf-8 -*-
 from django.conf import settings
 from oauth_tokens.api import ApiAbstractBase, Singleton
 from odnoklassniki import api, OdnoklassnikiError
@@ -30,8 +29,7 @@ class OdnoklassnikiApi(ApiAbstractBase):
 
     def handle_error_code(self, e, *args, **kwargs):
         if e.code is None and e.message == 'HTTP error':
-            time.sleep(1)
-            return self.repeat_call(*args, **kwargs)
+            return self.sleep_repeat_call(*args, **kwargs)
         else:
             return super(OdnoklassnikiApi, self).handle_error_code(e, *args, **kwargs)
 
@@ -42,8 +40,7 @@ class OdnoklassnikiApi(ApiAbstractBase):
 
     def handle_error_code_2(self, e, *args, **kwargs):
         # SERVICE : Service is temporary unavailable., logged by ID :
-        time.sleep(1)
-        return self.repeat_call(*args, **kwargs)
+        return self.sleep_repeat_call(*args, **kwargs)
 
 
 def api_call(*args, **kwargs):

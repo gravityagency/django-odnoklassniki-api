@@ -223,7 +223,7 @@ class OdnoklassnikiTimelineManager(OdnoklassnikiManager):
     Manager class, child of OdnoklassnikiManager for fetching objects with arguments `after`, `before`
     '''
     timeline_cut_fieldname = 'date'
-    timeline_force_ordering = False
+    timeline_force_ordering = True
 
     def get_timeline_date(self, instance):
         return getattr(instance, self.timeline_cut_fieldname, datetime(1970, 1, 1).replace(tzinfo=utc))

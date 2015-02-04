@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
-from abc import abstractmethod
-from datetime import datetime, date
 import logging
 import re
+from abc import abstractmethod
+from datetime import date, datetime
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.db import models, transaction, IntegrityError
+from django.db import IntegrityError, models, transaction
 from django.db.models.fields import FieldDoesNotExist
 from django.db.models.query import QuerySet
+from django.utils import timezone
 from django.utils.six import string_types
-import fields
-from pytz import timezone, utc
 
-from .api import api_call, OdnoklassnikiError
+from . import fields
+from .api import OdnoklassnikiError, api_call
 from .decorators import atomic
 from .fields_api import API_REQUEST_FIELDS
 
@@ -166,7 +166,7 @@ class OdnoklassnikiManager(models.Manager):
         TODO: rename everywhere extra_fields to _extra_fields
         '''
         extra_fields = kwargs.pop('extra_fields', {})
-        extra_fields['fetched'] = datetime.utcnow().replace(tzinfo=utc)
+        extra_fields['fetched'] = datetime.utcnow().replace(tzinfo=timezone.utc)
 
         self.response = self.api_call(*args, **kwargs)
 
@@ -226,7 +226,7 @@ class OdnoklassnikiTimelineManager(OdnoklassnikiManager):
     timeline_force_ordering = True
 
     def get_timeline_date(self, instance):
-        return getattr(instance, self.timeline_cut_fieldname, datetime(1970, 1, 1).replace(tzinfo=utc))
+        return getattr(instance, self.timeline_cut_fieldname, datetime(1970, 1, 1).replace(tzinfo=timezone.utc))
 
     @atomic
     def get(self, *args, **kwargs):
@@ -245,7 +245,7 @@ class OdnoklassnikiTimelineManager(OdnoklassnikiManager):
 
         result = super(OdnoklassnikiTimelineManager, self).get(*args, **kwargs)
 
-        if self.timeline_force_ordering:
+        if self.timeline_force_ordering and result:
             result.sort(key=self.get_timeline_date, reverse=True)
 
         instances = []
@@ -350,7 +350,7 @@ class OdnoklassnikiModel(models.Model):
                     try:
                         value = int(value)
                         assert value > 0
-                        value = datetime.utcfromtimestamp(value).replace(tzinfo=utc)
+                        value = datetime.utcfromtimestamp(value).replace(tzinfo=timezone.utc)
                     except:
                         value = None
 

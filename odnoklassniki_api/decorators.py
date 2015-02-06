@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-from django.utils.functional import wraps
-from django.db.models.query import QuerySet
-from datetime import datetime, timedelta
 import re
+from datetime import datetime, timedelta
+
+from django.db.models.query import QuerySet
+from django.utils.functional import wraps
 
 try:
     from django.db.transaction import atomic
@@ -55,6 +56,7 @@ def fetch_all(func, return_all=None, always_all=False, pagination='anchor'):
         if len(args) > 0:
             raise ValueError("It's prohibited to use non-key arguments for method decorated with @fetch_all, method is %s.%s(), args=%s" % (self.__class__.__name__, func.__name__, args))
 
+        response = {}
         instances = func(self, **kwargs)
         if len(instances) == 2 and isinstance(instances, tuple):
             instances, response = instances

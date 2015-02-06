@@ -4,6 +4,7 @@ import re
 from abc import abstractmethod
 from datetime import date, datetime
 
+import pytz
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db import IntegrityError, models, transaction
@@ -342,9 +343,9 @@ class OdnoklassnikiModel(models.Model):
                                 value[8:10]), int(value[11:13]), int(value[14:16]))
                         elif len(value) == 10:
                             value = datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]))
-                        value = timezone('Europe/Moscow').localize(value)
+                        value = pytz.timezone('Europe/Moscow').localize(value)
                         assert value.year != 1970
-                    except:
+                    except AssertionError:
                         value = None
                 else:
                     try:

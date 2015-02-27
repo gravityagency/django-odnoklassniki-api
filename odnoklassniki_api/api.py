@@ -21,8 +21,8 @@ class OdnoklassnikiApi(ApiAbstractBase):
     def get_consistent_token(self):
         return getattr(settings, 'ODNOKLASSNIKI_API_ACCESS_TOKEN', None)
 
-    def get_api(self, **kwargs):
-        return api.Odnoklassniki(application_key=APPLICATION_PUBLIC, application_secret=APPLICATION_SECRET, token=self.get_token(**kwargs))
+    def get_api(self, token):
+        return api.Odnoklassniki(application_key=APPLICATION_PUBLIC, application_secret=APPLICATION_SECRET, token=token)
 
     def get_api_response(self, *args, **kwargs):
         return self.api._get(self.method, *args, **kwargs)

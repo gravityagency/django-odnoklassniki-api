@@ -63,13 +63,13 @@ def fetch_all(func, return_all=None, always_all=False, pagination='anchor'):
 
         if always_all or all:
             if isinstance(instances, QuerySet):
-                if not instances_all:
+                if instances_all is None:
                     instances_all = instances.none()
                 instances_count = instances.count()
                 if instances_count:
                     instances_all |= instances
             elif isinstance(instances, list):
-                if not instances_all:
+                if instances_all is None:
                     instances_all = []
                 instances_count = len(instances)
                 instances_all += instances

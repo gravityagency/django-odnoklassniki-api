@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import re
 from datetime import datetime, timedelta
 
 from django.db.models.query import QuerySet
@@ -51,7 +50,7 @@ def fetch_all(func, return_all=None, always_all=False, pagination='anchor'):
         def fetch_something(self, ..., *kwargs):
         ....
     """
-    def wrapper(self, all=False, instances_all=None, *args, **kwargs):
+    def wrapper(self, all=False, instances_all=None, **kwargs):
 
         if len(args) > 0:
             raise ValueError("It's prohibited to use non-key arguments for method decorated with @fetch_all, method is %s.%s(), args=%s" % (self.__class__.__name__, func.__name__, args))

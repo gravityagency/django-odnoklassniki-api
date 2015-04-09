@@ -33,14 +33,18 @@ class OdnoklassnikiApi(ApiAbstractBase):
         else:
             return super(OdnoklassnikiApi, self).handle_error_code(e, *args, **kwargs)
 
+    def handle_error_code_2(self, e, *args, **kwargs):
+        # SERVICE : Service is temporary unavailable., logged by ID :
+        return self.sleep_repeat_call(*args, **kwargs)
+
+    def handle_error_code_8(self, e, *args, **kwargs):
+        # FLOOD_BLOCKED : Call blocked due to flood protection
+        return self.sleep_repeat_call(*args, **kwargs)
+
     def handle_error_code_102(self, e, *args, **kwargs):
         # PARAM_SESSION_EXPIRED : Session expired
         self.refresh_tokens()
         return self.repeat_call(*args, **kwargs)
-
-    def handle_error_code_2(self, e, *args, **kwargs):
-        # SERVICE : Service is temporary unavailable., logged by ID :
-        return self.sleep_repeat_call(*args, **kwargs)
 
 
 def api_call(*args, **kwargs):

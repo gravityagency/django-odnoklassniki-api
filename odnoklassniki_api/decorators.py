@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 
+from django.core.exceptions import ImproperlyConfigured
 from django.db.models.query import QuerySet
 from django.utils.functional import wraps
 
@@ -50,10 +51,11 @@ def fetch_all(func, return_all=None, always_all=False, pagination='anchor'):
         def fetch_something(self, ..., *kwargs):
         ....
     """
-    def wrapper(self, all=False, instances_all=None, **kwargs):
+    def wrapper(self, all=False, instances_all=None, *args, **kwargs):
 
         if len(args) > 0:
-            raise ValueError("It's prohibited to use non-key arguments for method decorated with @fetch_all, method is %s.%s(), args=%s" % (self.__class__.__name__, func.__name__, args))
+            raise ImproperlyConfigured("It's prohibited to use non-key arguments for method decorated with @fetch_all, "
+                                       "method is %s.%s(), args=%s" % (self.__class__.__name__, func.__name__, args))
 
         response = {}
         instances = func(self, **kwargs)

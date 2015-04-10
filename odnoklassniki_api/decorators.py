@@ -36,7 +36,7 @@ def opt_arguments(func):
 
 
 @opt_arguments
-def fetch_all(func, return_all=None, always_all=False, pagination='anchor'):
+def fetch_all(func, return_all=None, always_all=False, pagination='anchor', has_more='has_more'):
     """
     Class method decorator for fetching all items. Add parameter `all=False` for decored method.
     If `all` is True, method runs as many times as it returns any results.
@@ -54,8 +54,8 @@ def fetch_all(func, return_all=None, always_all=False, pagination='anchor'):
     def wrapper(self, all=False, instances_all=None, *args, **kwargs):
 
         if len(args) > 0:
-            raise ImproperlyConfigured("It's prohibited to use non-key arguments for method decorated with @fetch_all, "
-                                       "method is %s.%s(), args=%s" % (self.__class__.__name__, func.__name__, args))
+            raise ImproperlyConfigured("It's prohibited to use non-key arguments for method decorated with @fetch_all,"
+                                       " method is %s.%s(), args=%s" % (self.__class__.__name__, func.__name__, args))
 
         response = {}
         instances = func(self, **kwargs)
@@ -75,10 +75,13 @@ def fetch_all(func, return_all=None, always_all=False, pagination='anchor'):
                 instances_count = len(instances)
                 instances_all += instances
             else:
-                raise ValueError("Wrong type of response from func %s. It should be QuerySet or list, not a %s" % (func, type(instances)))
+                raise ValueError("Wrong type of response from func %s. It should be QuerySet or list, "
+                                 "not a %s" % (func, type(instances)))
 
             # recursive pagination
-            if instances_count and ('has_more' in response and response['has_more'] or 'has_more' not in response and pagination in response):
+            # print has_more, response.keys()
+            if instances_count and (has_more in response and response[has_more]
+                                    or has_more not in response and pagination in response):
                 kwargs[pagination] = response.get(pagination)
                 return wrapper(self, all=all, instances_all=instances_all, **kwargs)
 
@@ -111,12 +114,14 @@ def fetch_only_expired(func, timeout_days, expiration_fieldname='fetched', ids_a
     def wrapper(self, only_expired=False, *args, **kwargs):
 
         if len(args) > 0:
-            raise ValueError("It's prohibited to use non-key arguments for method decorated with @fetch_all, method is %s.%s(), args=%s" % (self.__class__.__name__, func.__name__, args))
+            raise ValueError("It's prohibited to use non-key arguments for method decorated with @fetch_all, "
+                             "method is %s.%s(), args=%s" % (self.__class__.__name__, func.__name__, args))
 
         if only_expired:
             ids = kwargs[ids_argument]
             expired_at = datetime.now() - timedelta(timeout_days)
-            ids_non_expired = self.model.objects.filter(**{'%s__gte' % expiration_fieldname: expired_at, 'pk__in': ids}).values_list('pk', flat=True)
+            ids_non_expired = self.model.objects.filter(**{'%s__gte' % expiration_fieldname: expired_at,
+                                                           'pk__in': ids}).values_list('pk', flat=True)
             kwargs[ids_argument] = list(set(ids).difference(set(ids_non_expired)))
 
             instances = None
@@ -145,7 +150,8 @@ def fetch_by_chunks_of(func, items_limit, ids_argument='ids'):
     def wrapper(self, *args, **kwargs):
 
         if len(args) > 0:
-            raise ValueError("It's prohibited to use non-key arguments for method decorated with @fetch_all, method is %s.%s(), args=%s" % (self.__class__.__name__, func.__name__, args))
+            raise ValueError("It's prohibited to use non-key arguments for method decorated with @fetch_all, "
+                             "method is %s.%s(), args=%s" % (self.__class__.__name__, func.__name__, args))
 
         ids = kwargs[ids_argument]
         if ids:

@@ -223,5 +223,14 @@ API_REQUEST_FIELDS = {
         'author_block_allowed',
         'likes_unread',
         'reply_unread',
+    ],
+    'theme': [
+        'id',
+        'title',
+        'truncated',
+        'is_news',
+        'share',
+        'images',
+        'attrs',
     ]
 }

@@ -171,6 +171,9 @@ class OdnoklassnikiManager(models.Manager):
 
         self.response = self.api_call(*args, **kwargs)
 
+        if not self.response:
+            raise OdnoklassnikiContentError()
+
         return self.parse_response(self.response, extra_fields)
 
     def parse_response(self, response, extra_fields=None):

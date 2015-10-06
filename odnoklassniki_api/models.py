@@ -17,23 +17,12 @@ from . import fields
 from .api import OdnoklassnikiError, api_call
 from .decorators import atomic
 from .fields_api import API_REQUEST_FIELDS
+from .exceptions import OdnoklassnikiContentError, OdnoklassnikiDeniedAccessError, OdnoklassnikiParseError
 
 log = logging.getLogger('odnoklassniki_api')
 
 COMMIT_REMOTE = getattr(settings, 'ODNOKLASSNIKI_API_COMMIT_REMOTE', True)
 MASTER_DATABASE = getattr(settings, 'ODNOKLASSNIKI_API_MASTER_DATABASE', 'default')
-
-
-class OdnoklassnikiDeniedAccessError(Exception):
-    pass
-
-
-class OdnoklassnikiContentError(Exception):
-    pass
-
-
-class OdnoklassnikiParseError(Exception):
-    pass
 
 
 class OdnoklassnikiManager(models.Manager):
@@ -171,7 +160,7 @@ class OdnoklassnikiManager(models.Manager):
 
         self.response = self.api_call(*args, **kwargs)
 
-        if not self.response:
+        if self.response == {}:
             raise OdnoklassnikiContentError()
 
         return self.parse_response(self.response, extra_fields)

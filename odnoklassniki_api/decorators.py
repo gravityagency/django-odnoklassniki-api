@@ -10,6 +10,8 @@ try:
 except ImportError:
     from django.db.transaction import commit_on_success as atomic
 
+from .exceptions import OdnoklassnikiContentError
+
 
 def list_chunks_iterator(l, n):
     """ Yield successive n-sized chunks from l.
@@ -83,7 +85,10 @@ def fetch_all(func, return_all=None, always_all=False, pagination='anchor', has_
             if instances_count and (has_more in response and response[has_more]
                                     or has_more not in response and pagination in response):
                 kwargs[pagination] = response.get(pagination)
-                return wrapper(self, all=all, instances_all=instances_all, **kwargs)
+                try:
+                    return wrapper(self, all=all, instances_all=instances_all, **kwargs)
+                except OdnoklassnikiContentError:
+                    pass
 
             if return_all:
                 kwargs['instances'] = instances_all

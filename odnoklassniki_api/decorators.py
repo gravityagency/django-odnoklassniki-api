@@ -60,7 +60,11 @@ def fetch_all(func, return_all=None, always_all=False, pagination='anchor', has_
                                        " method is %s.%s(), args=%s" % (self.__class__.__name__, func.__name__, args))
 
         response = {}
-        instances = func(self, **kwargs)
+        try:
+            instances = func(self, **kwargs)
+        except OdnoklassnikiContentError:
+            instances = []
+
         if len(instances) == 2 and isinstance(instances, tuple):
             instances, response = instances
 
@@ -75,7 +79,8 @@ def fetch_all(func, return_all=None, always_all=False, pagination='anchor', has_
                 if instances_all is None:
                     instances_all = []
                 instances_count = len(instances)
-                instances_all += instances
+                if instances_count:
+                    instances_all += instances
             else:
                 raise ValueError("Wrong type of response from func %s. It should be QuerySet or list, "
                                  "not a %s" % (func, type(instances)))
@@ -85,10 +90,7 @@ def fetch_all(func, return_all=None, always_all=False, pagination='anchor', has_
             if instances_count and (has_more in response and response[has_more]
                                     or has_more not in response and pagination in response):
                 kwargs[pagination] = response.get(pagination)
-                try:
-                    return wrapper(self, all=all, instances_all=instances_all, **kwargs)
-                except OdnoklassnikiContentError:
-                    pass
+                return wrapper(self, all=all, instances_all=instances_all, **kwargs)
 
             if return_all:
                 kwargs['instances'] = instances_all

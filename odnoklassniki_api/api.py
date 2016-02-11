@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from django.conf import settings
-from oauth_tokens.api import ApiAbstractBase, Singleton
+from social_api.api import ApiAbstractBase, Singleton
 from odnoklassniki import api, OdnoklassnikiError
 from simplejson.decoder import JSONDecodeError
 

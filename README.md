@@ -1,5 +1,5 @@
 Django Odnoklassniki API
-====================
+========================
 
 [![PyPI version](https://badge.fury.io/py/django-odnoklassniki-api.png)](http://badge.fury.io/py/django-odnoklassniki-api) [![Build Status](https://travis-ci.org/ramusus/django-odnoklassniki-api.png?branch=master)](https://travis-ci.org/ramusus/django-odnoklassniki-api) [![Coverage Status](https://coveralls.io/repos/ramusus/django-odnoklassniki-api/badge.png?branch=master)](https://coveralls.io/r/ramusus/django-odnoklassniki-api) [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/ramusus/django-odnoklassniki-api/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
 
